@@ -38,6 +38,7 @@ def prepare_loaders(_cfg, folds, fold):
         print(f'Len train_inds before: {len(train_inds)}')
         print(f'Len valid_inds before: {len(valid_inds)}')
         if _cfg.moreN:
+            # 只訓練較長的影片 frame len > 8的影片
             print(f'Train long >8 len')
             new_train_inds, new_valid_inds = [], []
             for ind in train_inds:
@@ -49,6 +50,7 @@ def prepare_loaders(_cfg, folds, fold):
                     new_valid_inds.append(ind)
             valid_inds = np.array(new_valid_inds)
         else:
+            # 把短的影片的出現比例增加 *8倍或是*4倍
             print(f'Multiply shorts')
             add_train_inds, new_valid_inds = [], []
             for ind in train_inds:
@@ -59,7 +61,8 @@ def prepare_loaders(_cfg, folds, fold):
                     for _ in range(3):
                         add_train_inds.append(ind)
             train_inds = np.concatenate([train_inds, np.array(add_train_inds)])
-
+            
+            # 長的影片不validate? 不清楚爲何這麼做
             for ind in valid_inds:
                 if data[ind].shape[0] <= 10:
                     new_valid_inds.append(ind)
@@ -183,6 +186,9 @@ class DatasetV1(torch.utils.data.Dataset):
 
 
 def do_random_affine(xyz, scale=(0.8, 1.3), shift=(-0.08, 0.08), degree=(-16, 16), p=0.5):
+    '''
+    全域的隨機放大縮小 隨機位移 隨機旋轉(對於XY)
+    '''
     if scale is not None:
         scale = np.random.uniform(*scale)
         xyz = scale*xyz
@@ -487,6 +493,9 @@ def center_data_nan2(tensor):
 
 
 def flip_pose(points):
+    '''
+    把人左右對調
+    '''
     l_hand_indices = torch.tensor(np.arange(18, 39))
     pose_ind1_l, pose_ind1_r = torch.tensor(np.array([40, 41, 44]).astype(int)), torch.tensor(
         np.array([42, 43, 45]).astype(int))
@@ -495,18 +504,22 @@ def flip_pose(points):
     r_hand_indices = torch.tensor(np.arange(59, 80))
     flipped_points = points.clone()
 
+    # X座標max
     x_max = flipped_points[:, :, 0][torch.where(~torch.isnan(flipped_points[:, :, 0]))].max()
 
+    # 左右手對調
     flipped_points[:, l_hand_indices] = points[:, r_hand_indices]
     flipped_points[:, r_hand_indices] = points[:, l_hand_indices]
 
     # Отражение координат x
+    # 左右pose對調
     flipped_points[:, pose_ind1_l] = points[:, pose_ind1_r]
     flipped_points[:, pose_ind1_r] = points[:, pose_ind1_l]
 
     flipped_points[:, pose_ind2_l] = points[:, pose_ind2_r]
     flipped_points[:, pose_ind2_r] = points[:, pose_ind2_l]
 
+    # x座標左右對調
     flipped_points[:, :, 0] = x_max - flipped_points[:, :, 0]
 
     return flipped_points
@@ -551,20 +564,27 @@ class DatasetImageSmall80(torch.utils.data.Dataset):
 
         self.train_mode = train_mode
 
+        # [40, 37, 267, 270, 291]
         lipsUpperOuter = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291][::2][1:]
+        # [181, 17, 405, 375]
         lipsLowerOuter = [146, 91, 181, 84, 17, 314, 405, 321, 375, 291][::2][1:]
+        # [80, 82, 312, 310, 308]
         lipsUpperInner = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308][::2][1:]
+        # [88, 87, 317, 318, 308]
         lipsLowerInner = [78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308][::2][1:]
 
+        # 嘴脣18個點
         LIPS = list(set(lipsUpperOuter + lipsLowerOuter + lipsUpperInner + lipsLowerInner))
+        # 骨架20
         pose = [489, 490, 492, 493, 494, 498, 499, 500, 501, 502, 503, 504, 505, 506,
                 507, 508, 509, 510, 511, 512]
-
+        # 左手21 右手21
         l_hand = [468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480,
                  481, 482, 483, 484, 485, 486, 487, 488]
         r_hand =[522, 523, 524, 525, 526, 527, 528, 529, 530, 531, 532,
                  533, 534, 535, 536, 537, 538, 539, 540, 541, 542]
 
+        # 嘴脣 左手 右手 骨架
         self.interesting_idx = np.array(LIPS + l_hand + pose + r_hand)
 
         self.lips = np.array(LIPS)
@@ -574,6 +594,7 @@ class DatasetImageSmall80(torch.utils.data.Dataset):
         self.hands__ = np.concatenate([np.arange(self.hand_left[0], self.hand_left[1]),
                                        np.arange(self.hand_right[0], self.hand_right[1])])
 
+        # maximum possible length of the mask, 在時間或頻率的維度上做mask
         self.freq_m = torchaudio.transforms.FrequencyMasking(cfg.freq_m)  # 10
         self.time_m = torchaudio.transforms.TimeMasking(cfg.time_m)  # 16
 
@@ -597,6 +618,7 @@ class DatasetImageSmall80(torch.utils.data.Dataset):
         self.y_std_left = torch.tensor(0.08524303883314133).float()
         self.z_std_left = torch.tensor(0.045476797968149185).float()
 
+        # 各部位index
         self.lips_ar = np.arange(0, 18)
         self.l_hand = np.arange(18, 39)
         self.pose_ar = np.arange(39, 59)
@@ -632,29 +654,43 @@ class DatasetImageSmall80(torch.utils.data.Dataset):
         # sample = self.df.loc[i]
         # yy = load_relevant_data_subset(self.base_dir + f'asl-signs/' + sample['path'])
         # yy = load_relevant_data_subset(self.base_dir + sample['path'])
+        
+        # N * 543 * 3
         yy = self.df[i]
 
         if self.train_mode:
             if random.random() < self.aug_prob:
+                # 全域的座標變換
                 yy = do_random_affine(yy, scale=(0.8, 1.3), shift=(-0.1, 0.1), degree=None)
 
         yy = torch.tensor(yy)
 
+        # 取出80點部位
         yy = yy[:, self.interesting_idx, :]
 
         if self.train_mode:
             if random.random() < self.invert_prob:
+                # 左右翻轉
                 yy = flip_pose(yy)
             if random.random() < self.shift_prob:
+                # 每個部位個別做小位移
                 yy = self.shift_aug(yy)
             if random.random() < self.scale_prob:
+                # 部位個別做放大縮小
                 yy = scale_parts(yy)
 
+        # nan填0
         yy = torch.nan_to_num(yy, 0.0)
 
+        # (N, 80, 3) -> (1, 1, N, 80, 3) -> (1, 1, 160, 80, 3)
+        # mini-batch x channels x [optional depth] x [optional height] x width.
         yy = F.interpolate(yy[None, None, :], size=self.new_size, mode='nearest') # this is base
 
         if random.random() < self.img_mask and self.train_mode:
+            # (1, 1, 160, 80, 3) -> (1, 160, 80, 3) -> (1, 3, 160, 80)
+            # freq mask: 對dim[-2]取一段區域填0
+            # time mask: 對dim[-1]取一段區域填0
+            # -> (3, 160, 80)
             yy = self.time_m(self.freq_m(yy.squeeze(0).permute(0, 3, 1, 2)))[0]
         else:
             yy = yy[0, 0]

@@ -112,6 +112,7 @@ def train_fn(cfg, fold, train_loader, model, criterion,
     for step, batch in pbar:
         _global_step += 1
 
+        # 取出一個batch的input和ground truth
         x, label = batch
         x = x.to(device)
 
@@ -122,6 +123,7 @@ def train_fn(cfg, fold, train_loader, model, criterion,
             if cfg.deep_supervision:
                 y_pred, sv_pred = model(x)
             else:
+                # 模型推論
                 y_pred = model(x)
 
             if cfg.deep_supervision:
@@ -135,15 +137,19 @@ def train_fn(cfg, fold, train_loader, model, criterion,
                 sv_loss /= len(model.sup_inds)
                 loss = criterion(y_pred, label) * 0.6 + 0.4 * sv_loss
             else:
+                # 套用loss function
                 loss = criterion(y_pred, label)
 
         if cfg.gradient_accumulation_steps > 1:
             loss = loss / cfg.gradient_accumulation_steps
 
+        # 倒傳遞
         scaler.scale(loss).backward()
+        # 作者自己統計的metric, average loss
         losses.update(loss.item(), batch_size)
 
         if (step + 1) % cfg.gradient_accumulation_steps == 0:
+            # 更新權重 梯度歸零 調整learning rate
             scaler.step(optimizer)
             scaler.update()
             optimizer.zero_grad()
@@ -164,6 +170,7 @@ def train_fn(cfg, fold, train_loader, model, criterion,
     torch.cuda.empty_cache()
     gc.collect()
 
+    # 回傳這個epoch的平均loss
     return losses.avg
 
 

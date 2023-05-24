@@ -97,6 +97,9 @@ def zero_out_random(tensor, percentage=0.15):
 
 
 def random_rotation_around_axis(points, axis='x', min_angle=-15, max_angle=15):
+    '''
+    以某個軸爲軸心旋轉 可是他是以軸心0做旋轉
+    '''
     min_angle_rad = math.radians(min_angle)
     max_angle_rad = math.radians(max_angle)
     angle = random.uniform(min_angle_rad, max_angle_rad)
@@ -300,11 +303,18 @@ class DatasetImageSmall80Mixup(torch.utils.data.Dataset):
         return points
 
     def rotate_aug(self, img):
+        '''
+        隨機挑選軸心和部位 做旋轉+-10度
+        '''
+        # 隨機挑選一個軸心
+        # 雖機挑選1~4個部位
+
         ax = np.random.choice(['x', 'y', 'z'])  # 1 or 2
 
         parts = np.random.choice(['lips', 'rh', 'lh', 'pose'], np.random.randint(1, 5), replace=False)
 
         for part in parts:
+            # 以某個軸爲軸心旋轉 可是他是以軸心0做旋轉
             img[:, self.parts_dict[part], :] = random_rotation_around_axis(img[:, self.parts_dict[part], :],
                                                                            axis=ax,
                                                                            min_angle=-10, max_angle=10)
@@ -312,23 +322,31 @@ class DatasetImageSmall80Mixup(torch.utils.data.Dataset):
         return img
 
     def replace_aug(self, img, lab):
+        '''
+        隨機挑選幾個部位 用別的圖的相同部位來取代
+        '''
         parts = np.random.choice(['lips', np.random.choice(['rh', 'lh']), 'pose'],
                                  np.random.randint(1, 3), replace=False)
 
         for part in parts:
+            # 從資料集中又挑1-3張同類別的影片出來
             repl_ind = np.random.choice(np.where(self.Y == lab)[0])
             repl, _ = self.get_one_item(repl_ind)
 
+            # 處理挑出的手沒有資料的狀況
             if part in ['rh', 'lh']:
                 if (img[:, :, :, self.parts_dict[part], :] == 0).all():
+                    # 如果左手沒資料 就有93%機率貼進右手
                     if random.random() < 0.93:
                         part_in = 'rh' if part == 'lh' else 'lh'
                     else:
                         part_in = part
                 else:
+                    # 如果左手有資料 就貼進左手
                     part_in = part
 
                 if (repl[:, :, :, self.parts_dict[part_in], :] == 0).all():
+                    # 如果新的圖沒有左手 就取右手做鏡像來貼
                     part_out = 'lh' if part_in == 'rh' else 'rh'
                     flipped_points = repl.clone()
                     x_max = flipped_points[:, :, 0].max()
@@ -340,6 +358,7 @@ class DatasetImageSmall80Mixup(torch.utils.data.Dataset):
             # rescale
             rescale = True
             if rescale:
+                # 把新的圖的部位的大小縮放 與舊的部位差不多大小 再進行取代
                 old_min0 = torch.min(repl[:, :, :, self.parts_dict[part], 0])
                 old_max0 = torch.max(repl[:, :, :, self.parts_dict[part], 0])
                 old_min1 = torch.min(repl[:, :, :, self.parts_dict[part], 1])
@@ -402,8 +421,10 @@ class DatasetImageSmall80Mixup(torch.utils.data.Dataset):
             if random.random() < self.scale_prob:
                 yy = scale_parts(yy)
             if random.random() < self.rotate_prob:
+                # 隨機旋轉某些部位
                 yy = self.rotate_aug(yy)
             if random.random() < self.tree_rot_prob:
+                # 隨機旋轉手指關節角度 左右手
                 yy[:, self.l_hand] = self.random_hand_rotate(yy[:, self.l_hand].numpy(),
                                                                 degree=(-5, 5),
                                                                 joint_prob=0.5)
@@ -416,6 +437,7 @@ class DatasetImageSmall80Mixup(torch.utils.data.Dataset):
             yy = self.norm(yy)
         yy = torch.nan_to_num(yy, 0.0)
 
+        # 若時間長度太長 可能會用隨機採樣的方式取到需要的長度
         if random.random() < self.interp_nearest_random and yy.size(0) > self.new_size[0] and self.train_mode:
             indices = np.random.choice(yy.size(0), size=self.new_size[0], replace=False)
             indices.sort()
@@ -436,9 +458,11 @@ class DatasetImageSmall80Mixup(torch.utils.data.Dataset):
             mix_i = np.random.randint(len(self.Y))
             mix_img, mix_y = self.get_one_item(mix_i)
 
+            # 做mixup 把兩張圖貼在一起
             mix_lambda = np.random.beta(self.mixup_alpha, self.mixup_alpha)
             img = base_img * mix_lambda + mix_img * (1 - mix_lambda)
 
+            # label也做調整
             label = torch.zeros(250)
             label[base_y] = mix_lambda
             label[mix_y] = 1 - mix_lambda
@@ -448,6 +472,7 @@ class DatasetImageSmall80Mixup(torch.utils.data.Dataset):
             label[y] = 1.
 
             if self.train_mode and random.random() < self.replace_prob:
+                # 隨機挑選幾個部位 用別的圖的相同部位來取代
                 img = self.replace_aug(img, y)
 
         if random.random() < self.img_mask and self.train_mode:

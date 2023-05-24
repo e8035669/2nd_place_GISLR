@@ -7,6 +7,10 @@ from torchvision.ops import SqueezeExcitation
 
 
 def get_model(_cfg):
+    '''
+    預設是img_v0 使用Efficientnet-b0
+    預設也沒開 deep_supervision
+    '''
     if _cfg.model == 'img_v0':
         if _cfg.deep_supervision:
             model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=250,

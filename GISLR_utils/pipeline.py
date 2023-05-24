@@ -24,12 +24,14 @@ def train_loop(CFG, folds, fold, LOGGER):
 
     LOGGER.info(f"========== Fold: {fold} training ==========")
 
+    # 讀取資料集 已經只取出XYZ的資料集
     train_loader, valid_loader, valid_inds = prepare_loaders(CFG, folds, fold)
     data_dict = {'Y': np.load(CFG.base_path + 'gen_xyz/Y.npy')}
 
     # ====================================================
     # model & optimizer & scheduler & loss
     # ====================================================
+    # 讀取模型 預設是Efficientnet-b0
     model = get_model(CFG)
     if CFG.finetune:
         fn_fol = CFG.base_path + 'FINETUNE_DIR/'
@@ -48,8 +50,10 @@ def train_loop(CFG, folds, fold, LOGGER):
         best_topk_score = 0
     model.to(CFG.device)
 
+    # Optimizer 預設使用 Lookahead_RAdam
     optimizer = get_optimizer(model, CFG)
 
+    # Stochastic Weight Averaging 預設沒有開
     if CFG.use_swa:
         swa_sched = swa_utils.SWALR(optimizer, anneal_strategy="linear", anneal_epochs=5, swa_lr=1e-4)
         swa_model = swa_utils.AveragedModel(model)
@@ -60,8 +64,10 @@ def train_loop(CFG, folds, fold, LOGGER):
 
     num_train_steps = int(len(train_loader.dataset) / train_loader.batch_size /
                           CFG.gradient_accumulation_steps * CFG.epochs)
+    # learning rate scheduler 預設用onecycle
     scheduler = get_scheduler(CFG, CFG.scheduler, optimizer, num_train_steps, CFG.num_cycles)
 
+    # loss function 預設使用 CrossEntropyLoss
     criterion = get_loss_func(CFG)
 
     # ====================================================
@@ -100,6 +106,7 @@ def train_loop(CFG, folds, fold, LOGGER):
         print(f'Epoch {epoch}/{CFG.epochs} | Fold {fold}')
 
         # train
+        # 訓練一個epoch
         avg_loss = train_fn(cfg=CFG, fold=fold, train_loader=train_loader, model=model, criterion=criterion,
                             optimizer=optimizer, scheduler=scheduler, device=CFG.device, epoch=epoch,
                             _global_step=_global_step, swa_start_=swa_start, swa_sched_=swa_sched, swa_model_=swa_model)
@@ -205,11 +212,13 @@ def train_loop(CFG, folds, fold, LOGGER):
                 pass
 
     # Load and re save best valid
+    # 讀取score最高的模型 重新命名 並填上best score
     loadeed_check = torch.load(save_path, map_location=torch.device('cpu'))
     cur_topk = round(loadeed_check['results'][f'topk{CFG.k}'], 4)
     final_v_path = CFG.save_path + f"{CFG.model}_fold{fold}_final_loop_best_main_{best_score:0.4f}_{cur_topk}.pth"
     torch.save(loadeed_check, final_v_path)
 
+    # 讀取topk score最高的模型 重新命名 並填上topk score
     loadeed_checktopk = torch.load(save_path_topk, map_location=torch.device('cpu'))
     cur_be = round(loadeed_checktopk['results']['accuracy'], 4)
     final_v_path_topk = CFG.save_path + f"{CFG.model}_fold{fold}_final_loop_best_topk_{cur_be}_{best_topk_score:0.4f}.pth"
@@ -219,8 +228,8 @@ def train_loop(CFG, folds, fold, LOGGER):
     os.remove(save_path_topk)
 
     # END OF TRAINING
-    LOGGER.info(f'FOLD {fold} TRAINING FINISHED. BEST ACCURACY SCORE: {best_score:0.5f} | BEST TOPK SCORE: {best_topk_score:.4f}',
-                f'SAVED HERE: {final_v_path}',
+    LOGGER.info(f'FOLD {fold} TRAINING FINISHED. BEST ACCURACY SCORE: {best_score:0.5f} | BEST TOPK SCORE: {best_topk_score:.4f}'
+                f'SAVED HERE: {final_v_path}'
                 f'AND HERE: {final_v_path_topk}')
 
     if CFG.use_swa:
