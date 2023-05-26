@@ -34,13 +34,17 @@ df = (
     .with_columns(pl.col("length").cumsum().alias("idx") - pl.col("length"))
     .to_pandas()
 )
-npy = np.load("./data/train_npy.npy")
+npy = np.load("./data/train_npy.npy", allow_pickle=True)
 
 class Data(Dataset):
     def __init__(self, df, cfg, phase):
         self.df = df
         self.max_len = cfg.config.max_position_embeddings - 1
         self.phase = phase
+        # [0, 1, 1, 1]
+        # [0, 0, 1, 1]
+        # [0, 0, 0, 1]
+        # [0, 0, 0, 0]
         self.dis_idx0, self.dis_idx1 = torch.where(torch.triu(torch.ones((21, 21)), 1) == 1)
         self.dis_idx2, self.dis_idx3 = torch.where(torch.triu(torch.ones((20, 20)), 1) == 1)
         
@@ -62,8 +66,10 @@ class Data(Dataset):
             pos[:,-21:] = random_hand_op_h4(pos[:,-21:])
         pos = torch.tensor(pos.astype(np.float32))
         # lip, lhand, rhand = pos[:,LIP], pos[:,468:489], pos[:,522:543]
+        # 取61個部位，包含嘴脣40點，左手或右手21點
         lip, lhand, rhand = pos[:,:-42], pos[:,-42:-21], pos[:,-21:]
         if self.phase == "train":
+            # 左右手翻轉 嘴脣翻轉
             if np.random.rand() < 0.5:
                 lhand, rhand = rhand, lhand
                 lhand[...,0] *= -1; rhand[...,0] *= -1
@@ -73,14 +79,17 @@ class Data(Dataset):
 
         pos = self.norm(torch.cat([lip, lhand], 1))
 
+        # Motion feature 包含未來與過去
         offset = torch.zeros_like(pos[-1:])
         movement = pos[:-1] - pos[1:]
         dpos = torch.cat([movement, offset])
         rdpos = torch.cat([offset, -movement])
 
+        # 使用手21個點的210組距離資訊  嘴脣也是
         ld = torch.linalg.vector_norm(lhand[:,self.dis_idx0,:2] - lhand[:,self.dis_idx1,:2], dim = -1)
         lipd = torch.linalg.vector_norm(lip[:,self.dis_idx2,:2] - lip[:,self.dis_idx3,:2], dim = -1)
 
+        # 使用5根手指頭的15個關節角度資訊 嘴脣也是
         lsim = F.cosine_similarity(lhand[:,HAND_ANGLES[:,0]] - lhand[:,HAND_ANGLES[:,1]],
                                    lhand[:,HAND_ANGLES[:,2]] - lhand[:,HAND_ANGLES[:,1]], -1)
         lipsim = F.cosine_similarity(lip[:,LIP_ANGLES[:,0]] - lip[:,LIP_ANGLES[:,1]],
@@ -95,6 +104,7 @@ class Data(Dataset):
             lsim.flatten(1),
         ], -1)
         pos = torch.where(torch.isnan(pos), torch.tensor(0.0, dtype = torch.float32).to(pos), pos)
+        # 影片長於96frame 就內插法縮短，影片長度太短不處理
         if len(pos) > self.max_len:
             pos = pos[np.linspace(0, len(pos), self.max_len, endpoint = False)]
         return pos
@@ -215,7 +225,7 @@ class LightModel(ptl.LightningModule):
                      prog_bar = True)
 
 
-
+# 取得Bert模型
 config = transformers.BertConfig()
 config.hidden_size = 256
 config.intermediate_size = 512 # config.hidden_size // 2
