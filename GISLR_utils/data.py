@@ -16,7 +16,7 @@ def prepare_loaders(_cfg, folds, fold):
     Prepare and build train and eval data loaders
     """
     train_inds = folds[folds.fold != fold].index
-    valid_inds = folds[folds.fold == fold].index
+    valid_inds = folds[folds.fold != fold].index
 
     if fold == 0 and _cfg.drop_bad_inds:
         bad_inds = np.load(_cfg.base_path + 'bad_indsf0.npy')

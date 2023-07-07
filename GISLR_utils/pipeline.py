@@ -36,8 +36,20 @@ def train_loop(CFG, folds, fold, LOGGER):
         fn_path = fn_fol + '/checkpoints/CKPT.pth'
         loaded_check = torch.load(fn_path, map_location=torch.device('cpu'))
         model.to(torch.device('cpu'))
+        exclude_key = ['_fc.weight', '_fc.bias']
+        del loaded_check['model']['_fc.weight']
+        del loaded_check['model']['_fc.bias']
         model.load_state_dict(dict([(n, p) for n, p in loaded_check['model'].items() if 'proj_head' not in n]),
                               strict=False)
+        for k, v in model.named_parameters():
+            if k in exclude_key:
+                print('Exclude key', k)
+                continue
+            if 'proj_head' in k:
+                print('Exclude key', k)
+                continue
+            print('Freeze layer', k)
+            v.requires_grad = False
 
         best_score = 0
         best_topk_score = 0

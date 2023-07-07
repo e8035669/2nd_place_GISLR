@@ -143,6 +143,7 @@ class DatasetImageSmall80Mixup(torch.utils.data.Dataset):
         self.df = df
         self.Y = Y
 
+        self.num_classes = cfg.num_classes
         self.new_size = cfg.new_size
 
         self.aug_prob = cfg.aug_prob
@@ -439,12 +440,14 @@ class DatasetImageSmall80Mixup(torch.utils.data.Dataset):
             mix_lambda = np.random.beta(self.mixup_alpha, self.mixup_alpha)
             img = base_img * mix_lambda + mix_img * (1 - mix_lambda)
 
-            label = torch.zeros(250)
+            # label = torch.zeros(250)
+            label = torch.zeros(self.num_classes)
             label[base_y] = mix_lambda
             label[mix_y] = 1 - mix_lambda
         else:
             img, y = self.get_one_item(i)
-            label = torch.zeros(250)
+            # label = torch.zeros(250)
+            label = torch.zeros(self.num_classes)
             label[y] = 1.
 
             if self.train_mode and random.random() < self.replace_prob:

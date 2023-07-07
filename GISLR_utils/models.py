@@ -9,18 +9,18 @@ from torchvision.ops import SqueezeExcitation
 def get_model(_cfg):
     if _cfg.model == 'img_v0':
         if _cfg.deep_supervision:
-            model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=250,
+            model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=_cfg.num_classes,
                                                  in_channels=3, dropout_rate=_cfg.drop_rate)
             model = Hypercolumn_Wrapper(model, drop_rate=0.1, num_blocks_hc=4)
             # model = ModelV2DeepSuper(drop_rate=_cfg.drop_rate)
             print(f'Using HYPERCOLUMN model')
         else:
-            model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=250,
+            model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=_cfg.num_classes,
                                                  in_channels=3, dropout_rate=_cfg.drop_rate)
 
     elif _cfg.model == 'img_v0_b1':
         _cfg.deep_supervision = False
-        model = EfficientNet.from_pretrained('efficientnet-b1', num_classes=250,
+        model = EfficientNet.from_pretrained('efficientnet-b1', num_classes=_cfg.num_classes,
                                              in_channels=3, dropout_rate=_cfg.drop_rate)
 
     elif _cfg.model == 'effb0_timm':
@@ -29,11 +29,11 @@ def get_model(_cfg):
                                      in_channels=3, drop_rate=_cfg.drop_rate
                                      )
         else:
-            model = timm.create_model('tf_efficientnet_b0', num_classes=250, drop_rate=_cfg.drop_rate)
+            model = timm.create_model('tf_efficientnet_b0', num_classes=_cfg.num_classes, drop_rate=_cfg.drop_rate)
     elif _cfg.model == 'v2_b1':
-        model = timm.create_model('tf_efficientnetv2_b1', num_classes=250, drop_rate=_cfg.drop_rate)
+        model = timm.create_model('tf_efficientnetv2_b1', num_classes=_cfg.num_classes, drop_rate=_cfg.drop_rate)
     elif _cfg.model == 'timm':
-        model = timm.create_model(_cfg.encoder, num_classes=250, drop_rate=_cfg.drop_rate)
+        model = timm.create_model(_cfg.encoder, num_classes=_cfg.num_classes, drop_rate=_cfg.drop_rate)
 
     else:
         raise ValueError('Error in "get_Model" function:',
