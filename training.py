@@ -150,8 +150,8 @@ class CFG:
     wandb_project='GISLR_IMG_OPTUNA'
     competition='G_ISLR_Kaggle'
     wb_group=None
-    exp_name='exp3'
-    base_path='/home/jeff/project/poc-project/sign_translate/holistic/basepath/'
+    exp_name='cam3_exp1'
+    base_path='/home/jeff/project/poc-project/sign_translate/holistic/part_time/camall/'
     seed=1223
     train=True
     LOOP=False
@@ -175,7 +175,8 @@ class CFG:
     invert_prob=0.22482221835067367
     drop_rate=0.105507794097595
     # num_classes=250
-    num_classes=391
+    # num_classes=391
+    num_classes=282
     early_stopping=None
     use_early_break=None
     FULL_TRAIN=False
@@ -183,8 +184,8 @@ class CFG:
     eval_after=0
     eval_every=1
     eval_always_after=1
-    finetune=False
-    # finetune=True
+    # finetune=False
+    finetune=True
     finetune_path=''
     finetune_fold=0
     finetune_sched_opt=True
@@ -197,7 +198,7 @@ class CFG:
     onecycle_m=1.0
     num_cycles=0.5
     num_warmup_steps=333
-    epochs=182
+    epochs=400
     use_restart=False
     rest_thr_=0.9
     rest_epoch=3
@@ -209,7 +210,7 @@ class CFG:
     weight_decay=0.01
     gradient_accumulation_steps=1
     optimizer="RAdam"
-    data_dir=base_path + '/asl-signs/'
+    data_dir = base_path + '/asl_signs/'
     BREAK_EPOCH=100000
     fill_nan_value=0.0
     new_size=(160, 80, 3)
@@ -241,6 +242,8 @@ class CFG:
     use_swa=False
     swa_start=0
     label_smooth=0.5126793416811322
+    train_fold = [6, 7]
+    valid_fold = [8]
 
 if False:
     os.makedirs(CFG.base_path + 'results/', exist_ok=True)
@@ -263,13 +266,13 @@ def read_dict(file_path):
         dic = json.load(f)
     return dic
 
-train = pd.read_csv(CFG.base_path + 'asl-signs/train.csv')
-# train = train.loc[:9999]
-# label_index = read_dict(f"{CFG.base_path}/asl-signs/sign_to_prediction_index_map.json")
+train = pd.read_csv(CFG.base_path + 'asl_signs/train.csv')
+# label_index = read_dict(f"{CFG.base_path}/asl_signs/sign_to_prediction_index_map.json")
 # index_label = dict([(label_index[key], key) for key in label_index])
 # train["label"] = train["sign"].map(lambda sign: label_index[sign])
 print(train.shape)
 # display(train.head())
+
 
 import numpy as np
 from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold
@@ -438,7 +441,7 @@ def objective():
     #         dir=CFG.base_path)
 
     LOGGER = get_logger(CFG.base_path + 'results/' + CFG.exp_name + f'/train_f{fold_}')
-    acc, topk = train_loop(CFG, train, fold_, LOGGER)
+    acc, topk = train_loop(CFG, train, fold_, CFG.train_fold, CFG.valid_fold, LOGGER)
     print(f'FOR PARAMS: {param}')
     print(f'Accuracy: {acc}')
     print(f'TOPK: {topk}')

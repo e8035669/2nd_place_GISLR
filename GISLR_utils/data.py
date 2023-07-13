@@ -11,12 +11,12 @@ from .mixup_data import DatasetImageSmall80Mixup, DatasetImageSmall112Mixup, Dat
 from .partial_aug_data import DatasetImageSmall80Partial
 
 
-def prepare_loaders(_cfg, folds, fold):
+def prepare_loaders(_cfg, folds, fold, train_fold, valid_fold):
     """
     Prepare and build train and eval data loaders
     """
-    train_inds = folds[folds.fold != fold].index
-    valid_inds = folds[folds.fold != fold].index
+    train_inds = folds[folds.fold.isin(train_fold)].index
+    valid_inds = folds[folds.fold.isin(valid_fold)].index
 
     if fold == 0 and _cfg.drop_bad_inds:
         bad_inds = np.load(_cfg.base_path + 'bad_indsf0.npy')

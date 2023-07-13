@@ -16,7 +16,7 @@ from .losses import get_loss_func
 from torch.optim import swa_utils
 
 
-def train_loop(CFG, folds, fold, LOGGER):
+def train_loop(CFG, folds, fold, train_fold, valid_fold, LOGGER):
     whole_time_start = time.time()
     if CFG.finetune_change_seed:
         CFG.seed *= 2
@@ -24,7 +24,7 @@ def train_loop(CFG, folds, fold, LOGGER):
 
     LOGGER.info(f"========== Fold: {fold} training ==========")
 
-    train_loader, valid_loader, valid_inds = prepare_loaders(CFG, folds, fold)
+    train_loader, valid_loader, valid_inds = prepare_loaders(CFG, folds, fold, train_fold, valid_fold)
     data_dict = {'Y': np.load(CFG.base_path + 'gen_xyz/Y.npy')}
 
     # ====================================================
