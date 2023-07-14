@@ -169,8 +169,11 @@ class LightModel(ptl.LightningModule):
         })
 
     def prepare_data(self):
-        df_train = df # df.loc[self.cfg.split[self.cfg.fold][0]]
-        df_valid = df # df.loc[self.cfg.split[self.cfg.fold][1]]
+        # df_train = df # df.loc[self.cfg.split[self.cfg.fold][0]]
+        # df_valid = df # df.loc[self.cfg.split[self.cfg.fold][1]]
+        df_train = df[df['fold'].isin(self.cfg.train_fold)]
+        df_valid = df[df['fold'].isin(self.cfg.valid_fold)]
+
         self.dl_train = DataLoader(Data(df_train, self.cfg, "train"), batch_size = self.cfg.batch_size, shuffle = True, num_workers = 8, drop_last = True, persistent_workers = True)
         self.dl_valid = DataLoader(Data(df_valid, self.cfg, "valid"), batch_size = self.cfg.batch_size, shuffle = False, num_workers = 8, drop_last = False, persistent_workers = True)
 
@@ -242,11 +245,13 @@ class cfg:
     fold = fold
     # split = list(StratifiedKFold(8, random_state = 42, shuffle = True).split(df, y = df.label))
     # num_epochs = 70
+    train_fold = [6, 7]
+    valid_fold = [8]
     num_epochs = 500
     warmup_epochs = 45
     # plateau_epochs = 45
     learning_rate = 2e-4
-    name = "rsplit"
+    name = "rsplit-cam1"
     version = f"N1"
     monitor = "valid_top1"
     # batch_size = 128
