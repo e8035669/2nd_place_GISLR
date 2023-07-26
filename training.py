@@ -150,8 +150,8 @@ class CFG:
     wandb_project='GISLR_IMG_OPTUNA'
     competition='G_ISLR_Kaggle'
     wb_group=None
-    exp_name='cam3_exp1'
-    base_path='/home/jeff/project/poc-project/sign_translate/holistic/part_time/camall/'
+    exp_name='exp3'
+    base_path='/home/jeff/project/poc-project/sign_translate/holistic/part_time/m1_m2/'
     seed=1223
     train=True
     LOOP=False
@@ -184,8 +184,8 @@ class CFG:
     eval_after=0
     eval_every=1
     eval_always_after=1
-    # finetune=False
-    finetune=True
+    finetune=False
+    # finetune=True
     finetune_path=''
     finetune_fold=0
     finetune_sched_opt=True
@@ -198,7 +198,7 @@ class CFG:
     onecycle_m=1.0
     num_cycles=0.5
     num_warmup_steps=333
-    epochs=400
+    epochs=500
     use_restart=False
     rest_thr_=0.9
     rest_epoch=3
@@ -210,7 +210,7 @@ class CFG:
     weight_decay=0.01
     gradient_accumulation_steps=1
     optimizer="RAdam"
-    data_dir = base_path + '/asl_signs/'
+    data_dir = base_path + '/asl-signs/'
     BREAK_EPOCH=100000
     fill_nan_value=0.0
     new_size=(160, 80, 3)
@@ -242,8 +242,8 @@ class CFG:
     use_swa=False
     swa_start=0
     label_smooth=0.5126793416811322
-    train_fold = [6, 7]
-    valid_fold = [8]
+    train_fold = list(range(18))
+    valid_fold = list(range(18))
 
 if False:
     os.makedirs(CFG.base_path + 'results/', exist_ok=True)
@@ -266,7 +266,7 @@ def read_dict(file_path):
         dic = json.load(f)
     return dic
 
-train = pd.read_csv(CFG.base_path + 'asl_signs/train.csv')
+train = pd.read_csv(CFG.base_path + 'asl-signs/train.csv')
 # label_index = read_dict(f"{CFG.base_path}/asl_signs/sign_to_prediction_index_map.json")
 # index_label = dict([(label_index[key], key) for key in label_index])
 # train["label"] = train["sign"].map(lambda sign: label_index[sign])
@@ -418,6 +418,7 @@ def objective():
     CFG.optimizer = 'Lookahead_RAdam'  # param['optimizer']
     CFG.motion = False
     CFG.use_swa = False
+    # CFG.use_swa = True
     CFG.swa_start = 0
     CFG.drop_bad_inds = False
     CFG.deal_with_len = False
