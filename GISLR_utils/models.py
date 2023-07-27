@@ -34,6 +34,18 @@ def get_model(_cfg):
         model = timm.create_model('tf_efficientnetv2_b1', num_classes=_cfg.num_classes, drop_rate=_cfg.drop_rate)
     elif _cfg.model == 'timm':
         model = timm.create_model(_cfg.encoder, num_classes=_cfg.num_classes, drop_rate=_cfg.drop_rate)
+    elif _cfg.model == 'img_v0_b2':
+        model = EfficientNet.from_pretrained('efficientnet-b2', num_classes=_cfg.num_classes,
+                                             in_channels=3, dropout_rate=_cfg.drop_rate)
+    elif _cfg.model == 'img_v0_b3':
+        model = EfficientNet.from_pretrained('efficientnet-b3', num_classes=_cfg.num_classes,
+                                             in_channels=3, dropout_rate=_cfg.drop_rate)
+    elif _cfg.model == 'img_v0_b4':
+        model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=_cfg.num_classes,
+                                             in_channels=3, dropout_rate=_cfg.drop_rate)
+    elif _cfg.model == 'img_v0_b5':
+        model = EfficientNet.from_pretrained('efficientnet-b5', num_classes=_cfg.num_classes,
+                                             in_channels=3, dropout_rate=_cfg.drop_rate)
 
     else:
         raise ValueError('Error in "get_Model" function:',
