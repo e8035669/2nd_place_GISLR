@@ -151,7 +151,8 @@ class CFG:
     competition='G_ISLR_Kaggle'
     wb_group=None
     exp_name='exp3'
-    base_path='/home/jeff/project/poc-project/sign_translate/holistic/part_time/m1_m2/'
+    # base_path='/home/jeff/project/poc-project/sign_translate/holistic/part_time/m1_m2/'
+    base_path='/home/jovyan/project/poc-project/sign_translate/holistic/part_time/m1_m2/'
     seed=1223
     train=True
     LOOP=False
@@ -216,10 +217,10 @@ class CFG:
     new_size=(160, 80, 3)
     encoder='rexnet_100'
     COLAB=False
-    use_loss_wgt=True
+    use_loss_wgt=False
     pw_bad=0.8219710950094926
     pw_com=1.3979208248868304
-    deep_supervision=True
+    deep_supervision=False
     zero_prob=0.0
     deal_with_len=False
     moreN=False
@@ -339,6 +340,7 @@ def objective(trial):
         # 'interp_nearest_random': trial.suggest_float('interp_nearest_random', 0.35, 0.5),
         # 'lookahed_k':trial.suggest_int('lookahed_k', 2, 7),
         # 'lookahed_alpha':trial.suggest_float('lookahed_alpha', 0.3, 0.6),
+        'loss': trial.suggest_categorical('loss', ['ce', 'focal']),
     }
     print(param)
     # CFG.tree_rot_prob = param['tree_rot_prob']
@@ -360,7 +362,8 @@ def objective(trial):
     # CFG.time_m = param["time_m"]
     CFG.scheduler = 'onecycle'
     CFG.new_size = (160, 80, 3)
-    CFG.loss = 'ce'
+    # CFG.loss = 'ce'
+    CFG.loss = param['loss']
     CFG.alpha = 0.3
     CFG.model = param['model']
     #CFG.encoder = 'rexnet_100'  # if model == 'timm'
@@ -412,7 +415,7 @@ print('Starting train parameters optimization process.\n'
 optuna.logging.disable_default_handler()
 direct = 'maximize'
 study = optuna.create_study(direction=direct)
-study.optimize(objective, n_trials=64)
+study.optimize(objective, n_trials=128)
 
 model_params = study.best_trial.params
 print('Best params:')
