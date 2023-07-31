@@ -161,8 +161,8 @@ def train_fn(cfg, fold, train_loader, model, criterion,
                          gpu_mem=f'{mem:0.2f} GB',
                          global_step=f'{_global_step}')
 
-    torch.cuda.empty_cache()
-    gc.collect()
+    # torch.cuda.empty_cache()
+    # gc.collect()
 
     return losses.avg
 
@@ -223,7 +223,7 @@ def valid_fn(cfg, valid_loader, model, epoch, criterion, device):
         pbar.set_postfix(_loss=f'{losses.avg:0.5f}',
                          gpu_mem=f'{mem:0.2f} GB')
 
-    torch.cuda.empty_cache()
-    gc.collect()
+    # torch.cuda.empty_cache()
+    # gc.collect()
 
     return losses.avg, [prediction, prediction_dsv]

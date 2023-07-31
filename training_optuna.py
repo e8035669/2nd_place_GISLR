@@ -300,6 +300,8 @@ train.fold = train.fold.astype(int)
 
 # +
 import optuna
+from optuna.storages import JournalStorage, JournalFileStorage
+
 
 def objective(trial):
     """
@@ -385,7 +387,7 @@ def objective(trial):
     CFG.trn_fold = [0]
     fold_ = CFG.trn_fold[0]
 
-    CFG.exp_name = f'EXP_NAME_f{fold_}_{trial.number}_m{CFG.model}_d{CFG.drop_rate}_s{CFG.seed}_bs{CFG.train_bs}_lr{CFG.lr:8f}_ep{CFG.epochs}'
+    CFG.exp_name = f'EXP_NAME_f{fold_}_{trial.number}_m{CFG.model}_d{CFG.drop_rate:.2f}_s{CFG.seed}_bs{CFG.train_bs}_lr{CFG.lr:8f}_ep{CFG.epochs}'
 
     os.makedirs(CFG.base_path + 'results/', exist_ok=True)
     os.makedirs(CFG.base_path + 'results/' + CFG.exp_name, exist_ok=True)
@@ -414,7 +416,9 @@ print('Starting train parameters optimization process.\n'
           f'With main metric Accuracy')
 optuna.logging.disable_default_handler()
 direct = 'maximize'
-study = optuna.create_study(direction=direct)
+
+storage = JournalStorage(JournalFileStorage("optuna-journal.log"))
+study = optuna.create_study(direction=direct, study_name='optune_study', storage=storage, load_if_exists=True)
 study.optimize(objective, n_trials=128)
 
 model_params = study.best_trial.params
