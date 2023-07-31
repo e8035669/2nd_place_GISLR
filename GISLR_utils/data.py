@@ -1,4 +1,6 @@
 import random
+import os
+from pathlib import Path
 
 import torch
 import numpy as np
@@ -23,7 +25,6 @@ def prepare_loaders(_cfg, folds, fold, train_fold, valid_fold):
         train_inds = [x for x in train_inds if x not in bad_inds]
 
     if _cfg.COLAB:
-        import os
         if not (os.path.exists('/content/data.npy') and os.path.exists('/content/Y.npy')):
             import shutil
             shutil.copyfile(_cfg.base_path + 'gen_xyz/Y.npy', '/content/Y.npy')
@@ -31,7 +32,13 @@ def prepare_loaders(_cfg, folds, fold, train_fold, valid_fold):
         data = np.load('/content/data.npy', allow_pickle=True)
         Y = np.load('/content/Y.npy')
     else:
-        data = np.load(_cfg.base_path + 'gen_xyz/data.npy', allow_pickle=True)
+        if os.path.exists(_cfg.base_path + 'gen_xyz/data.npy'):
+            data = np.load(_cfg.base_path + 'gen_xyz/data.npy', allow_pickle=True)
+        else:
+            base_path = Path(_cfg.base_path) / 'gen_xyz'
+            data = [(base_path / i).with_suffix('.npy') for i in folds['path']]
+            assert all(i.exists() for i in data)
+
         Y = np.load(_cfg.base_path + 'gen_xyz/Y.npy')
 
     if _cfg.deal_with_len:
@@ -296,6 +303,8 @@ class DatasetImageSmall80Normed(torch.utils.data.Dataset):
         # yy = load_relevant_data_subset(self.base_dir + f'asl-signs/' + sample['path'])
         # yy = load_relevant_data_subset(self.base_dir + sample['path'])
         yy = self.df[i]
+        if not isinstance(yy, np.ndarray):
+            yy = np.load(yy)
 
         meta = len(yy) / 500.
         if self.train_mode:
@@ -633,6 +642,8 @@ class DatasetImageSmall80(torch.utils.data.Dataset):
         # yy = load_relevant_data_subset(self.base_dir + f'asl-signs/' + sample['path'])
         # yy = load_relevant_data_subset(self.base_dir + sample['path'])
         yy = self.df[i]
+        if not isinstance(yy, np.ndarray):
+            yy = np.load(yy)
 
         if self.train_mode:
             if random.random() < self.aug_prob:

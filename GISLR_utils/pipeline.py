@@ -156,7 +156,7 @@ def train_loop(CFG, folds, fold, train_fold, valid_fold, LOGGER):
             f'Epoch {epoch} - avg_train_loss: {avg_loss:.5f}  '
             f'avg_val_loss: {avg_val_loss:.5f}  time: {elapsed:.0f}s')
         LOGGER.info(f'Epoch {epoch} - Accuracy: {accuracy:.5f} | TopK{CFG.k}: {topk_score:.5f}')
-        
+
         torch.save({'model': model.state_dict(),
                     'results': params,
                     }, last_path)

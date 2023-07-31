@@ -397,6 +397,8 @@ class DatasetImageSmall80Partial(torch.utils.data.Dataset):
 
     def get_one_item(self, index):
         yy = self.df[index]
+        if not isinstance(yy, np.ndarray):
+            yy = np.load(yy)
 
         if self.train_mode:
             if random.random() < self.aug_prob:

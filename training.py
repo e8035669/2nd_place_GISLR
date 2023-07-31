@@ -150,8 +150,8 @@ class CFG:
     wandb_project='GISLR_IMG_OPTUNA'
     competition='G_ISLR_Kaggle'
     wb_group=None
-    exp_name='exp3'
-    base_path='/home/jeff/project/poc-project/sign_translate/holistic/part_time/m1_m2/'
+    exp_name='exp1'
+    base_path='/home/jeff/project/poc-project/sign_translate/holistic/part_time/m1_m2_m3/'
     seed=1223
     train=True
     LOOP=False
@@ -387,9 +387,11 @@ def objective():
     '''
     param = {
         'seed': np.random.randint(20, 10000), #6374,
-        'drop_rate': 0.2, #trial.suggest_float('drop_rate', 0.18, 0.22), # model dropout
+        # 'drop_rate': 0.2, #trial.suggest_float('drop_rate', 0.18, 0.22), # model dropout
+        'drop_rate': 0.6, #trial.suggest_float('drop_rate', 0.18, 0.22), # model dropout
         'img_masking': 0.98, # prob to use torchaudio masks
-        'model': 'img_v0', # model name
+        # 'model': 'img_v0', # model name
+        'model': 'img_v0_b1', # model name
         'dataset': 'img_80_mixup', # img_80_onehand for one hand new_size=(T, 64, 3), img_80_mixup for 2 hands new_size=(T, 80, 3)
         # 'use_loss_wgt': True, # use wieghted loss
         'use_loss_wgt': False, # use wieghted loss
